@@ -34,16 +34,6 @@ impl RaylibHandle {
     pub fn gui_fade(&mut self, alpha: f32) {
         unsafe { ffi::GuiFade(alpha) }
     }
-    /// Set gui state (global state)
-    #[inline]
-    pub fn gui_set_state(&mut self, state: crate::consts::GuiControlState) {
-        unsafe { ffi::GuiSetState(state as i32) }
-    }
-    /// Get gui state (global state)
-    #[inline]
-    pub fn gui_get_state(&mut self) -> crate::consts::GuiControlState {
-        unsafe { std::mem::transmute(ffi::GuiGetState()) }
-    }
     /// Set gui custom font (global state)
     #[inline]
     pub fn gui_set_font(&mut self, font: impl AsRef<ffi::Font>) {
@@ -106,16 +96,6 @@ pub trait RaylibDrawGui {
     #[inline]
     fn gui_fade(&mut self, alpha: f32) {
         unsafe { ffi::GuiFade(alpha) }
-    }
-    /// Set gui state (global state)
-    #[inline]
-    fn gui_set_state(&mut self, state: crate::consts::GuiControlState) {
-        unsafe { ffi::GuiSetState(state as i32) }
-    }
-    /// Get gui state (global state)
-    #[inline]
-    fn gui_get_state(&mut self) -> crate::consts::GuiControlState {
-        unsafe { std::mem::transmute(ffi::GuiGetState()) }
     }
     /// Set gui custom font (global state)
     #[inline]
@@ -182,20 +162,32 @@ pub trait RaylibDrawGui {
     }
     /// Panel control, useful to group controls
     #[inline]
-    fn gui_panel(&mut self, bounds: impl Into<ffi::Rectangle>) {
-        unsafe { ffi::GuiPanel(bounds.into()) }
+    fn gui_panel(&mut self, bounds: impl Into<ffi::Rectangle>, text: Option<&CStr>) {
+        unsafe {
+            ffi::GuiPanel(
+                bounds.into(),
+                text.map(CStr::as_ptr).unwrap_or(std::ptr::null()),
+            )
+        }
     }
     /// Scroll Panel control
     #[inline]
     fn gui_scroll_panel(
         &mut self,
         bounds: impl Into<ffi::Rectangle>,
+        text: Option<&CStr>,
         content: impl Into<ffi::Rectangle>,
         scroll: impl Into<ffi::Vector2>,
     ) -> (Rectangle, Vector2) {
         let mut scroll = scroll.into();
-        let bounds: ffi::Rectangle =
-            unsafe { ffi::GuiScrollPanel(bounds.into(), content.into(), &mut scroll) };
+        let bounds: ffi::Rectangle = unsafe {
+            ffi::GuiScrollPanel(
+                bounds.into(),
+                text.map(CStr::as_ptr).unwrap_or(std::ptr::null()),
+                content.into(),
+                &mut scroll,
+            )
+        };
         return (bounds.into(), scroll.into());
     }
     /// Label control, shows text
@@ -225,40 +217,6 @@ pub trait RaylibDrawGui {
             ffi::GuiLabelButton(
                 bounds.into(),
                 text.map(CStr::as_ptr).unwrap_or(std::ptr::null()),
-            )
-        }
-    }
-    /// Image button control, returns true when clicked
-    #[inline]
-    fn gui_image_button(
-        &mut self,
-        bounds: impl Into<ffi::Rectangle>,
-        text: Option<&CStr>,
-        texture: impl AsRef<ffi::Texture>,
-    ) -> bool {
-        unsafe {
-            ffi::GuiImageButton(
-                bounds.into(),
-                text.map(CStr::as_ptr).unwrap_or(std::ptr::null()),
-                *texture.as_ref(),
-            )
-        }
-    }
-    /// Image button extended control, returns true when clicked
-    #[inline]
-    fn gui_image_button_ex(
-        &mut self,
-        bounds: impl Into<ffi::Rectangle>,
-        text: Option<&CStr>,
-        texture: impl AsRef<ffi::Texture>,
-        tex_source: impl Into<ffi::Rectangle>,
-    ) -> bool {
-        unsafe {
-            ffi::GuiImageButtonEx(
-                bounds.into(),
-                text.map(CStr::as_ptr).unwrap_or(std::ptr::null()),
-                *texture.as_ref(),
-                tex_source.into(),
             )
         }
     }
@@ -515,26 +473,24 @@ pub trait RaylibDrawGui {
             )
         }
     }
-    /// Scroll Bar control
-    #[inline]
-    fn gui_scroll_bar(
-        &mut self,
-        bounds: impl Into<ffi::Rectangle>,
-        value: i32,
-        min_value: i32,
-        max_value: i32,
-    ) -> i32 {
-        unsafe { ffi::GuiScrollBar(bounds.into(), value, min_value, max_value) }
-    }
     /// Grid control
     #[inline]
     fn gui_grid(
         &mut self,
         bounds: impl Into<ffi::Rectangle>,
+        text: Option<&CStr>,
         spacing: f32,
         subdivs: i32,
     ) -> Vector2 {
-        unsafe { ffi::GuiGrid(bounds.into(), spacing, subdivs).into() }
+        unsafe {
+            ffi::GuiGrid(
+                bounds.into(),
+                text.map(CStr::as_ptr).unwrap_or(std::ptr::null()),
+                spacing,
+                subdivs,
+            )
+            .into()
+        }
     }
     /// List View control, returns selected list item index
     #[inline]
@@ -606,6 +562,8 @@ pub trait RaylibDrawGui {
         message: Option<&CStr>,
         buttons: Option<&CStr>,
         text: &mut Vec<u8>,
+        text_max_size: i32,
+        secret_view_active: &mut i32,
     ) -> i32 {
         // rgui.h: line 3699 MAX_FILENAME_LEN
         text.reserve((256 - text.len()).max(0) as usize);
@@ -616,6 +574,8 @@ pub trait RaylibDrawGui {
                 message.map(CStr::as_ptr).unwrap_or(std::ptr::null()),
                 buttons.map(CStr::as_ptr).unwrap_or(std::ptr::null()),
                 text.as_mut_ptr() as *mut _,
+                text_max_size,
+                secret_view_active
             )
         }
     }
@@ -625,9 +585,17 @@ pub trait RaylibDrawGui {
     fn gui_color_picker(
         &mut self,
         bounds: impl Into<ffi::Rectangle>,
+        text: Option<&CStr>,
         color: impl Into<ffi::Color>,
     ) -> Color {
-        unsafe { ffi::GuiColorPicker(bounds.into(), color.into()).into() }
+        unsafe {
+            ffi::GuiColorPicker(
+                bounds.into(),
+                text.map(CStr::as_ptr).unwrap_or(std::ptr::null()),
+                color.into(),
+            )
+            .into()
+        }
     }
     // Get text with icon id prepended
     // NOTE: Useful to add icons by name id (enum) instead of
@@ -635,7 +603,7 @@ pub trait RaylibDrawGui {
     #[inline]
     fn gui_icon_text(
         &mut self,
-        icon_id: crate::consts::guiIconName,
+        icon_id: crate::consts::GuiIconName,
         text: Option<&CStr>,
     ) -> String {
         let buffer = unsafe {
@@ -659,7 +627,14 @@ pub trait RaylibDrawGui {
     /// Color Bar Alpha control
     /// NOTE: Returns alpha value normalized [0..1]
     #[inline]
-    fn gui_color_bar_alpha(&mut self, bounds: impl Into<ffi::Rectangle>, alpha: f32) -> f32 {
-        unsafe { ffi::GuiColorBarAlpha(bounds.into(), alpha).into() }
+    fn gui_color_bar_alpha(&mut self, bounds: impl Into<ffi::Rectangle>, text: Option<&CStr>, alpha: f32) -> f32 {
+        unsafe {
+            ffi::GuiColorBarAlpha(
+                bounds.into(),
+                text.map(CStr::as_ptr).unwrap_or(std::ptr::null()),
+                alpha,
+            )
+            .into()
+        }
     }
 }

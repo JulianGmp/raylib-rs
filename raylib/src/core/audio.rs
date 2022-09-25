@@ -8,7 +8,7 @@ use std::mem::ManuallyDrop;
 make_thin_wrapper!(Wave, ffi::Wave, ffi::UnloadWave);
 make_thin_wrapper!(Sound, ffi::Sound, ffi::UnloadSound);
 make_thin_wrapper!(Music, ffi::Music, ffi::UnloadMusicStream);
-make_thin_wrapper!(AudioStream, ffi::AudioStream, ffi::CloseAudioStream);
+make_thin_wrapper!(AudioStream, ffi::AudioStream, ffi::UnloadAudioStream);
 
 make_rslice!(WaveSamples, f32, ffi::UnloadWaveSamples);
 
@@ -165,7 +165,7 @@ impl RaylibAudio {
     /// Checks if music is playing.
     #[inline]
     pub fn is_music_playing(&self, music: &Music) -> bool {
-        unsafe { ffi::IsMusicPlaying(music.0) }
+        unsafe { ffi::IsMusicStreamPlaying(music.0) }
     }
 
     /// Sets volume for music (`1.0` is max level).
@@ -267,8 +267,8 @@ impl Drop for RaylibAudio {
 }
 
 impl Wave {
-    pub fn sample_count(&self) -> u32 {
-        self.0.sampleCount
+    pub fn frame_count(&self) -> u32 {
+        self.0.frameCount
     }
     pub fn smaple_rate(&self) -> u32 {
         self.0.sampleRate
@@ -340,7 +340,7 @@ impl Wave {
             let data = ffi::LoadWaveSamples(self.0);
             Box::from_raw(std::slice::from_raw_parts_mut(
                 data,
-                self.sample_count() as usize,
+                self.frame_count() as usize,
             ))
         };
         WaveSamples(ManuallyDrop::new(as_slice))
@@ -361,7 +361,7 @@ impl AsMut<ffi::AudioStream> for Sound {
 
 impl Sound {
     pub fn sample_count(&self) -> u32 {
-        self.0.sampleCount
+        self.0.frameCount
     }
     pub unsafe fn inner(self) -> ffi::Sound {
         let inner = self.0;
@@ -438,7 +438,7 @@ impl AudioStream {
         sample_size: u32,
         channels: u32,
     ) -> AudioStream {
-        unsafe { AudioStream(ffi::InitAudioStream(sample_rate, sample_size, channels)) }
+        unsafe { AudioStream(ffi::LoadAudioStream(sample_rate, sample_size, channels)) }
     }
 
     /// Updates audio stream buffers with data.
