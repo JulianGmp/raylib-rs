@@ -62,7 +62,7 @@ pub fn run(rl: &mut RaylibHandle, thread: &RaylibThread) -> crate::SampleOut
         rl.update_camera(&mut camera);          // Update camera
 
         // Display information about closest hit
-        let mut nearestHit = RayHitInfo::default();
+        let mut nearestHit = RayCollision::default();
         let mut hitObjectName = "None";
         nearestHit.distance = std::f32::MAX;
         nearestHit.hit = false;
@@ -95,7 +95,7 @@ pub fn run(rl: &mut RaylibHandle, thread: &RaylibThread) -> crate::SampleOut
         }
         else {hitTriangle = false;}
 
-        let mut  meshHitInfo = RayHitInfo::default();
+        let mut  meshHitInfo = RayCollision::default();
 
         // Check ray collision against bounding box first, before trying the full ray-mesh test
         if (towerBBox.check_collision_ray_box(ray))
