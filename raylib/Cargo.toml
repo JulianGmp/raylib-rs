@@ -12,7 +12,7 @@ categories = ["api-bindings", "game-engines", "graphics"]
 edition = "2018"
 
 [dependencies]
-raylib-sys = { version = "= 0.1.0", path = "../raylib-sys" }
+raylib-sys = { path = "../raylib-sys" }
 libc = "0.2.45"
 lazy_static = "1.2.0"
 cfg-if = "1.0.0"
@@ -22,7 +22,7 @@ nalgebra = { version = "0.26", optional = true }
 
 [features]
 nightly = []
-nobuild = ["raylib-sys/link_statically"]
+link_raylib_statically = ["raylib-sys/link_statically"]
 # wayland = ["raylib-sys/wayland"]
 with_serde = ["serde", "serde_json"]
 nalgebra_interop = ["nalgebra"]
