@@ -12,6 +12,13 @@ pub fn set_trace_log(types: TraceLogLevel) {
     }
 }
 
+#[inline]
+pub fn set_trace_log_callback(callback: ffi::TraceLogCallback) {
+    unsafe {
+        ffi::SetTraceLogCallback(callback);
+    }
+}
+
 /// Writes a trace log message (`Log::INFO`, `Log::WARNING`, `Log::ERROR`, `Log::DEBUG`).
 #[inline]
 pub fn trace_log(msg_type: TraceLogLevel, text: &str) {
