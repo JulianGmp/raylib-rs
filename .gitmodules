@@ -1,3 +1,3 @@
 [submodule "JulianGmp/raylib-sys"]
 	path = raylib-sys
-	url = git@github.com:JulianGmp/raylib-sys.git
+	url = git@codeberg.org:JulianGmp/raylib-sys.git
